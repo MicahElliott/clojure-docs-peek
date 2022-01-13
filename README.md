@@ -1,13 +1,14 @@
-# Clojure-Docs Peek
+# Clojure-Docs Peek (CDP)
 
 A simple popup to show colorized docstrings above point, for _any_
-function and resolved namespace.
+function and resolved namespace. Also shows some basic summary
+statistics for functions and namespaces.
 
 ![Non-local function (showing namespace) with see-also](./img/cdp2.png
 "Non-local function (showing namespace) with see-also")
 
 <sub>_**Caption:** Point sitting on non-local function, showing
-colorized and resolved namespace, funtion name, parameters, docstring,
+colorized and resolved namespace, function name, parameters, docstring,
 and optional see-alsos._</sub>
 
 You can see in the screenshots that the gray box is
@@ -44,7 +45,7 @@ already bought into that. quick-peek is tiny and has none._
 
 ## Usage
 
-Invoke `cider-inline-docs-toggle` to open and close the peek.
+Invoke `clojure-docs-peek-toggle` to open and close the peek.
 
 Use universal argument (prefix `C-u`) to include _See also_ section.
 
@@ -52,7 +53,7 @@ I use this constantly and like to bind this to be really quick and
 easy to use, so it's `CD` (as a key-chord):
 
 ``` elisp
-(key-chord-define-global "CD" 'cider-inline-docs-toggle)
+(key-chord-define-global "CD" 'clojure-docs-peek-toggle)
 ```
 
 ## More Screenshots
