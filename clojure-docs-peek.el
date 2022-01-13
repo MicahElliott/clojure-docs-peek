@@ -41,12 +41,15 @@
 	(quick-peek-hide))
     ;; If not on a word, let it error
     (setq my-cidt-ns-p nil)
-    (let* ((info    (cider-var-info (thing-at-point 'word 'no-properties)))
+    (let* ((info0    (cider-var-info (thing-at-point 'word 'no-properties)))
+	   (info (if (looking-at-fn-p)
+		     info0
+		   (cider-var-info (nrepl-dict-get info0 "ns"))))
+	   (ns      (propertize (nrepl-dict-get info "ns") 'face 'font-lock-type-face))
            ;; Built-in fns' info are indexed differently from user-defined.
 	   (arglist-str (nrepl-dict-get info "arglists-str"))
 	   (arglist (when arglist-str (propertize arglist-str 'face 'clojure-keyword-face)))
 	   (fname (car (last (split-string (nrepl-dict-get info "file") ":"))))
-	   (ns      (propertize (nrepl-dict-get info "ns") 'face 'font-lock-type-face))
 	   (name-str (nrepl-dict-get info "name"))
 	   (name    (if (not (string-match "\\." name-str)) ; not an NS
 			(propertize name-str 'face 'font-lock-function-name-face)
@@ -55,7 +58,10 @@
 		      nil))
 	   (doc     (propertize (nrepl-dict-get info "doc")
 				'face 'font-lock-doc-face))
-	   (stats (ns-stats ns))
+	   (stats (if (looking-at-fn-p)
+		      (fn-stats ns name)
+		    (message "ns lookup")
+		    (ns-stats ns)))
 	   (seealso-str (nrepl-dict-get (cider-var-info (thing-at-point 'word 'no-properties)) "see-also"))
 	   (seealso (and seealso-str
 			 (propertize
@@ -95,6 +101,17 @@
   (when num
     (concat (propertize label 'face 'cider-repl-stdout-face) ":"
 	    (propertize num   'face 'cider-repl-input-face))))
+
+(defun looking-at-fn-p ()
+  (let* ((thing (thing-at-point 'word))
+	 (sepi (s-index-of "/" thing))
+         (i0 (car (bounds-of-thing-at-point 'word)))
+	 (i2 (cdr (bounds-of-thing-at-point 'word)))
+	 (pt (- (point) i0)))
+    (if (string-match-p "\\." thing)
+	nil
+      (if (string-match-p "/" thing)
+	  (< sepi pt)))))
 
 (defun fn-stats (ns name)
   "Gather function stats on NS and NAME."
