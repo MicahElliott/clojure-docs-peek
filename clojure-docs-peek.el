@@ -63,14 +63,11 @@
 			    ;; (propertize name-str 'face 'font-lock-type-face)
 			    (setq cdp--ns-p t)
 			    nil))
-
-
 		 (doc     (propertize (nrepl-dict-get info "doc")
 				      'face 'font-lock-doc-face))
 		 (stats (if (cdp--looking-at-fn-p)
 			    (cdp--fn-stats ns name)
-			  (message "ns lookup")
-			  (cdp--ns-stats ns is-jar-p)))
+                          (cdp--ns-stats ns is-jar-p)))
 		 (seealso-str (nrepl-dict-get (cider-var-info (thing-at-point 'word 'no-properties)) "see-also"))
 		 (seealso (and seealso-str
 			       (propertize
@@ -105,12 +102,13 @@
 	      (message "Not sure how we got here!"))))))))
 
 (defun cdp--colorize-stat (label num &optional face-override)
-  "Add face color properties to LABEL and NUM."
+  "Add face color properties to LABEL and NUM, with ability to FACE-OVERRIDE."
   (when num
     (concat (propertize label 'face (or face-override 'cider-repl-stdout-face)) ":"
 	    (propertize num   'face 'cider-repl-input-face))))
 
 (defun cdp--looking-at-fn-p ()
+  "Check if point is on a function or namespace."
   (let* ((thing (thing-at-point 'word))
 	 (sepi (s-index-of "/" thing))
          (i0 (car (bounds-of-thing-at-point 'word)))
@@ -120,12 +118,22 @@
       (if (string-match-p "/" thing)
 	  (< sepi pt)))))
 
+(defun cdp--make-tips (tip-list)
+  "Build a TIP-LIST that can be enabled or not."
+  (concat "\n\n" (string-join tip-list "\n- ")))
+
 (defun cdp--fn-stats (ns name)
   "Gather function stats on NS and NAME."
-  (cdp--colorize-stat "refs" (int-to-string (length (cider-sync-request:fn-refs ns name)))))
+  (concat (cdp--colorize-stat "refs" (int-to-string (length (cider-sync-request:fn-refs ns name))))
+	  (cdp--make-tips
+	   (list "Tips (you may have bindings already, else make them):"
+		 "cider-browse-ns:           view complete NS"
+		 "cider-find-var:            visit file, and then..."
+		 "cider-xref-fn-refs-select: see and visit project-wide references"))
+	  ))
 
 (defun cdp--ns-stats (ns is-jar-p)
-  "Gather namespace stats on NS.
+  "Gather namespace stats on NS, looking out for IS-JAR-P.
 
 Build a single summary line showing counts of various interesting
 things, such as lines/vars and problems like missing docs and
@@ -134,24 +142,30 @@ flycheck flags."
     ;; Might need this to avoid read-only prompt
     ;; https://emacs.stackexchange.com/a/19747/11025
     ;; (find-file fname)
-    (string-join
-     (remq nil (list
-		(cdp--colorize-stat "lines"  (int-to-string (count-lines (point-min) (point-max))))
+    (concat
+     (string-join
+      (remq nil (list
+		 (cdp--colorize-stat "lines"  (int-to-string (count-lines (point-min) (point-max))))
 
-		(cdp--colorize-stat "vars"   (int-to-string (length (cider-browse-ns--items ns))))
-		(when (not is-jar-p)
-		  (cdp--colorize-stat "issues" (let ((issues (split-string
-							      ;; " FlyC" or " FlyC:0|1"
-							      (flycheck-mode-line-status-text) ":")))
-						 (when (= 2 (length issues))
-						   (car (last issues))))
-				      'error))
-		(when (not is-jar-p)
-		  (cdp--colorize-stat "nodocs" (int-to-string
-						(length (remq nil (mapcar (lambda (x) (string-match "Not documented" x))
-									  (cider-browse-ns--items ns) ))))
-				      'error))))
-     " — ")))
+		 (cdp--colorize-stat "vars"   (int-to-string (length (cider-browse-ns--items ns))))
+		 (when (not is-jar-p)
+		   (cdp--colorize-stat "issues" (let ((issues (split-string
+							       ;; " FlyC" or " FlyC:0|1"
+							       (flycheck-mode-line-status-text) ":")))
+						  (when (= 2 (length issues))
+						    (car (last issues))))
+				       'error))
+		 (when (not is-jar-p)
+		   (cdp--colorize-stat "nodocs" (int-to-string
+						 (length (remq nil (mapcar (lambda (x) (string-match "Not documented" x))
+									   (cider-browse-ns--items ns) ))))
+				       'error))
+		 ))
+      " — ")
+     (cdp--make-tips
+      (list "Tips:"
+	    "cider-find-var:  visit file, and then..."
+	    "cider-browse-ns: view complete NS")))))
 
 ;; (cdp--find-test-file "/home/mde/work/cc/src/clj/crawlingchaos/domain/homeowner/borrower.clj")
 ;; Borrowed from and depends on toggle-test.el
